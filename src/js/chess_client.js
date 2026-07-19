@@ -52,6 +52,21 @@
     setupMobileMenu();
     document.addEventListener('htmx:afterSwap', setupMobileMenu);
 
+    let lastMoveTime = 0;
+
+    function sendMoveRequest(gameId, roleParam, fromSq, toSq, promo) {
+        lastMoveTime = Date.now();
+        htmx.ajax('POST', '/game/' + gameId + '/move?role=' + roleParam, {
+            target: document.getElementById('game-container'),
+            swap: 'innerHTML',
+            values: {
+                from_sq: fromSq,
+                to_sq: toSq,
+                promo: promo
+            }
+        });
+    }
+
     // Establish WebSocket connection
     let ws;
     function connectWS() {
@@ -71,6 +86,11 @@
 
         ws.onmessage = function(event) {
             if (event.data === 'refresh') {
+                const elapsed = Date.now() - lastMoveTime;
+                if (elapsed < 1500) {
+                    console.log('Suppressing WS refresh (local move POST update applied ' + elapsed + 'ms ago)');
+                    return;
+                }
                 console.log('Received refresh signal from WS, reloading board');
                 const urlParams = new URLSearchParams(window.location.search);
                 const roleParam = urlParams.get('role') || '';
@@ -139,7 +159,6 @@
     });
 
     document.addEventListener('dragend', function(e) {
-        // Clear any opacity classes
         const squareEl = e.target.closest('[data-square]');
         if (squareEl) {
             squareEl.classList.remove('opacity-50');
@@ -148,14 +167,13 @@
         if (pocketEl) {
             pocketEl.classList.remove('opacity-50');
         }
-        // Clear drag hover styles from all squares
         document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
     });
 
     document.addEventListener('dragover', function(e) {
         const squareEl = e.target.closest('[data-square]');
         if (squareEl) {
-            e.preventDefault(); // Required to allow drop
+            e.preventDefault();
         }
     });
 
@@ -190,7 +208,6 @@
 
         let promo = '';
         if (!fromSq.startsWith('drop:')) {
-            // Check pawn promotion
             let fromSquareEl = null;
             const sqs = document.querySelectorAll("[data-square]");
             for (let i = 0; i < sqs.length; i++) {
@@ -217,15 +234,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         const roleParam = urlParams.get('role') || '';
 
-        htmx.ajax('POST', '/game/' + gameId + '/move?role=' + roleParam, {
-            target: document.getElementById('game-container'),
-            swap: 'innerHTML',
-            values: {
-                from_sq: fromSq,
-                to_sq: toSq,
-                promo: promo
-            }
-        });
+        sendMoveRequest(gameId, roleParam, fromSq, toSq, promo);
     });
 
     document.addEventListener('click', function(e) {
@@ -239,7 +248,6 @@
             return;
         }
 
-        // 1. Check if clicked a pocket piece
         const pocketEl = e.target.closest('[data-pocket-piece]');
         if (pocketEl) {
             const piece = pocketEl.getAttribute('data-pocket-piece');
@@ -250,12 +258,10 @@
                 return;
             }
 
-            // Clear any previous board square selection highlights
             const prevSelectedEl = document.querySelector('.selected-sq');
             if (prevSelectedEl) {
                 prevSelectedEl.classList.remove('selected-sq');
             }
-            // Clear any previous pocket piece selection highlights
             const prevPocketEl = document.querySelector('.selected-pocket-piece');
             if (prevPocketEl) {
                 prevPocketEl.classList.remove('selected-pocket-piece');
@@ -268,7 +274,6 @@
             return;
         }
 
-        // 2. Check if clicked a board square
         const squareEl = e.target.closest('[data-square]');
         if (!squareEl) return;
 
@@ -285,9 +290,7 @@
                 console.log('Cannot select opponent or empty square');
             }
         } else {
-            // If we click the same square or same pocket piece
             if (selectedSquare === square || selectedSquare === ('drop:' + squareEl.getAttribute('data-piece-type'))) {
-                // Reset selection
                 if (selectedSquare.startsWith('drop:')) {
                     selectedSquareEl.classList.remove('selected-pocket-piece');
                 } else {
@@ -297,7 +300,6 @@
                 selectedSquareEl = null;
                 console.log('Selection cleared');
             } else if (pieceColor === myRole) {
-                // Switch selection to another of our own board pieces
                 if (selectedSquare.startsWith('drop:')) {
                     selectedSquareEl.classList.remove('selected-pocket-piece');
                 } else {
@@ -308,12 +310,10 @@
                 squareEl.classList.add('selected-sq');
                 console.log('Selection changed to board piece:', selectedSquare);
             } else {
-                // Make a move or drop!
                 const fromSq = selectedSquare;
                 const toSq = square;
                 const fromSquareEl = selectedSquareEl;
 
-                // Clear highlights
                 if (selectedSquare.startsWith('drop:')) {
                     selectedSquareEl.classList.remove('selected-pocket-piece');
                 } else {
@@ -344,15 +344,7 @@
                 const roleParam = urlParams.get('role') || '';
                 console.log('Submitting move/drop via HTMX AJAX:', fromSq, '->', toSq, 'promo:', promo);
 
-                htmx.ajax('POST', '/game/' + gameId + '/move?role=' + roleParam, {
-                    target: document.getElementById('game-container'),
-                    swap: 'innerHTML',
-                    values: {
-                        from_sq: fromSq,
-                        to_sq: toSq,
-                        promo: promo
-                    }
-                });
+                sendMoveRequest(gameId, roleParam, fromSq, toSq, promo);
             }
         }
     });
