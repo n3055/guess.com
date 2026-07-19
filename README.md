@@ -1,83 +1,107 @@
-# ♟ guess.com — Play Chess Online
+# ♟ guess.com — Real-Time Multiplayer Chess
 
-A real-time multiplayer chess web application built with **Rust**, **Topcoat**, and **HTMX**. Features a sleek dark theme inspired by chess.com, live WebSocket updates, drag-and-drop piece movement, and a custom "Mad Scientist" chess variant.
+A modern, full-stack multiplayer chess web application built in **Rust** using the **[Topcoat](https://github.com/tokio-rs/topcoat)** framework, **HTMX**, and **WebSockets**. Features a dark UI inspired by Chess.com, real-time board updates, drag-and-drop gameplay, and a custom "Mad Scientist" pocket variant.
 
 ![Rust](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)
-![WebSocket](https://img.shields.io/badge/WebSocket-010101?style=for-the-badge&logo=socketdotio&logoColor=white)
+![Topcoat](https://img.shields.io/badge/Topcoat-000000?style=for-the-badge&logo=tokio&logoColor=white)
 ![HTMX](https://img.shields.io/badge/HTMX-36C?style=for-the-badge&logo=htmx&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38BDF8?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)
+
+---
 
 ## ✨ Features
 
-- **Real-time Multiplayer** — Play against friends or random opponents with live WebSocket board updates.
-- **Quick Matchmaking** — Instant pairing with other players searching for a game.
-- **Drag & Drop + Click-to-Move** — Two intuitive ways to play your moves.
-- **Standard Chess** — Full rule enforcement including castling, en passant, promotion, checkmate, and stalemate detection.
-- **🧪 Mad Scientist Mode** — A custom variant where captured pieces return to the owner's pocket and can be dropped back onto the board.
-- **Responsive UI** — Desktop and mobile-friendly dark theme with smooth animations.
-- **Spectator Mode** — Watch any live game without joining.
+- ⚡ **Real-Time Multiplayer** — Instant board sync across players via WebSocket channel broadcasts.
+- 🎯 **Quick Matchmaking** — Queue system for pairing online players automatically into standard or custom games.
+- 🎨 **Chess.com Inspired UI** — Modern dark theme (`#262522`) with custom board styling and smooth animations.
+- ♟ **Dual Interaction Modes** — Supports both HTML5 **drag-and-drop** and **click-to-move** piece interactions.
+- 📖 **Full Rule Compliance** — Complete FIDE rule validation (castling, en-passant, promotion prompt, checkmate, stalemate).
+- 🧪 **Mad Scientist Variant** — A unique pocket chess mode where captured pieces return to their owner's pocket and can be dropped onto any empty square.
+- 🔍 **Spectator Mode** — Watch ongoing live matches in real time.
 
-## 🚀 Getting Started
+---
 
-### Prerequisites
+## 🏗 Architecture & Code Structure
 
-- [Rust](https://www.rust-lang.org/tools/install) (edition 2024)
-
-### Run Locally
-
-```bash
-# Clone the repo
-git clone https://github.com/<your-username>/guess-chess.git
-cd guess-chess
-
-# Build and run
-cargo run
-```
-
-The app will start on **http://localhost:3000** with the WebSocket server on **port 3001**.
-
-Open two browser tabs (or one normal + one incognito) to play against yourself.
-
-## 🏗 Project Structure
+The project follows a clean modular design with separated concerns:
 
 ```
 src/
-├── main.rs              — Entry point, router setup
-├── chess_game.rs         — Game logic, move validation, GameManager
-├── ws.rs                 — WebSocket server for live updates
-├── helpers.rs            — Player session cookie management
+├── main.rs              # Application entry point & Tokio runtime setup
+├── chess_game.rs        # Core game logic, state management, & unit tests
+├── ws.rs                # Tokio WebSocket server for real-time broadcasts
+├── helpers.rs           # Player session cookie management
 ├── routes/
-│   ├── lobby.rs          — Lobby page, game creation, join by code
-│   ├── game.rs           — Game page, board endpoint, move execution
-│   └── matchmaking.rs    — Quick matchmaking join/status/cancel
+│   ├── mod.rs           # Route module exports
+│   ├── lobby.rs         # GET / (Lobby), POST /game/create, POST /game/join
+│   ├── game.rs          # GET /game/{id}, GET /game/{id}/board, POST /game/{id}/move
+│   └── matchmaking.rs   # Matchmaking queue (join, status polling, cancel)
 ├── views/
-│   ├── layout.rs         — HTML shell, sidebar, global CSS
-│   ├── board.rs          — Chess board and player panel rendering
-│   └── pieces.rs         — Piece image URLs, captured piece tracking
+│   ├── mod.rs           # View module exports
+│   ├── layout.rs        # Root HTML layout shell & global CSS
+│   ├── board.rs         # Game board & player info bar rendering
+│   └── pieces.rs        # Piece SVG mapping & captured piece counter
 └── js/
-    └── chess_client.js   — Client-side interaction (WebSocket, drag/drop, moves)
+    └── chess_client.js  # Compiled-in JS for WS connection & drag/drop handlers
 ```
 
-## 🎮 Game Variants
+---
+
+## 🎮 Game Modes
 
 ### Standard Chess
-Classic chess with full FIDE rules. Checkmate your opponent to win.
+Traditional chess rules powered by the [`chess`](https://crates.io/crates/chess) crate engine.
 
 ### 🧪 Mad Scientist Chess
-A custom variant with pocket mechanics:
-1. **Captured pieces go back to the owner's pocket** (they keep their original color).
-2. On your turn, you can **drop a piece from your pocket** onto any empty square instead of moving.
-3. Pawns cannot be dropped on the 1st or 8th rank.
+A fast-paced custom variant featuring pocket piece drops:
+1. **Pocket Storage**: When a piece is captured, it is placed into the *owner's pocket* (retaining its original color).
+2. **Piece Drop**: On your turn, instead of moving a board piece, you can drop any piece from your pocket onto an empty square.
+3. **Drop Restrictions**: Pawns cannot be dropped onto the 1st or 8th ranks.
+
+---
 
 ## 🛠 Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **Backend** | Rust + [Topcoat](https://crates.io/crates/topcoat) framework |
-| **Chess Engine** | [`chess`](https://crates.io/crates/chess) crate (move validation, board state) |
-| **Frontend** | Server-rendered HTML + [HTMX](https://htmx.org) + [Tailwind CSS](https://tailwindcss.com) |
-| **Real-time** | WebSocket via [`tokio-tungstenite`](https://crates.io/crates/tokio-tungstenite) |
-| **Piece Assets** | [Lichess cburnett SVGs](https://lichess.org) |
+| Component | Technology | Description |
+|-----------|------------|-------------|
+| **Framework** | [Topcoat](https://github.com/tokio-rs/topcoat) | Full-stack Rust web framework |
+| **Engine** | [`chess`](https://crates.io/crates/chess) | FIDE-compliant move generation & board evaluation |
+| **WebSockets** | `tokio-tungstenite` | Low-latency real-time refresh signaling |
+| **Frontend** | HTMX + Tailwind CSS | Server-driven UI updates with zero heavy JS bundles |
+| **Assets** | Lichess (cburnett) | High-quality SVG chess piece assets |
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- [Rust](https://www.rust-lang.org/tools/install) (2024 edition or newer)
+
+### Installation & Run
+
+```bash
+# Clone the repository
+git clone https://github.com/n3055/guess.com.git
+cd guess.com
+
+# Build and start the app
+cargo run
+```
+
+Access the application in your browser at **`http://localhost:3000`** (WebSocket runs on port `3001`).
+
+> **Tip**: Open two browser tabs (or one standard + one incognito tab) to test live multiplayer gameplay locally!
+
+### Running Unit Tests
+
+```bash
+cargo test
+```
+
+---
 
 ## 📄 License
 
-This project is open source and available under the [MIT License](LICENSE).
+Distributed under the MIT License. See `LICENSE` for more information.
