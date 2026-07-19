@@ -29,18 +29,6 @@ pub async fn render_player_line(
     let r_url = get_piece_image_url(Piece::Rook, p_color);
     let q_url = get_piece_image_url(Piece::Queen, p_color);
 
-    let avatar_color = if role_to_join == "white" {
-        "bg-[#f9f9f7]"
-    } else {
-        "bg-[#1b1a17]"
-    };
-
-    let avatar_text = if role_to_join == "white" {
-        "text-[#1b1a17]"
-    } else {
-        "text-[#f9f9f7]"
-    };
-
     let mut pawns_count = 0;
     let mut knights_count = 0;
     let mut bishops_count = 0;
@@ -65,57 +53,53 @@ pub async fn render_player_line(
     if queens_count > 0 { pocket_items.push(("q".to_string(), q_url, queens_count)); }
 
     view! { cx =>
-        <div class="flex items-center justify-between bg-[#1e1e1c] border border-[#31312f] rounded-lg p-3 my-2 shadow-md">
+        <div class="flex items-center justify-between bg-[#1e1e1c] border border-[#31312f] rounded-lg px-3 py-1.5 my-1 shadow-md w-full">
             <div class="flex items-center space-x-3">
-                <div class=(format!("w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg {} {}", avatar_color, avatar_text))>
-                    (if role_to_join == "white" { "W" } else { "B" })
-                </div>
-
                 <div class="flex flex-col">
                     if let Some(pid) = player_id_opt {
-                        <span class="font-bold text-white text-base">
+                        <span class="font-bold text-white text-sm">
                             (role_label) " (" (&pid[..8]) ")"
                         </span>
                     } else {
-                        <span class="font-bold text-gray-500 text-base italic">
+                        <span class="font-bold text-gray-500 text-sm italic">
                             (role_label) " (Open)"
                         </span>
                     }
 
-                    <div class="flex items-center space-x-0.5 mt-0.5 min-h-[1.25rem]">
+                    <div class="flex items-center space-x-0.5 mt-0.5 min-h-[1rem]">
                         for _ in 0..captured_pieces.pawns {
-                            <img src=(p_url) class="w-5 h-5 object-contain" />
+                            <img src=(p_url) class="w-4 h-4 object-contain" />
                         }
                         for _ in 0..captured_pieces.knights {
-                            <img src=(n_url) class="w-5 h-5 object-contain" />
+                            <img src=(n_url) class="w-4 h-4 object-contain" />
                         }
                         for _ in 0..captured_pieces.bishops {
-                            <img src=(b_url) class="w-5 h-5 object-contain" />
+                            <img src=(b_url) class="w-4 h-4 object-contain" />
                         }
                         for _ in 0..captured_pieces.rooks {
-                            <img src=(r_url) class="w-5 h-5 object-contain" />
+                            <img src=(r_url) class="w-4 h-4 object-contain" />
                         }
                         for _ in 0..captured_pieces.queens {
-                            <img src=(q_url) class="w-5 h-5 object-contain" />
+                            <img src=(q_url) class="w-4 h-4 object-contain" />
                         }
                     </div>
 
                     if !pocket_items.is_empty() {
-                        <div class="flex items-center gap-2 mt-2 pt-2 border-t border-[#2d2d2c] w-full">
-                            <span class="text-[10px] font-bold text-yellow-500 tracking-wider">"POCKET:"</span>
+                        <div class="flex items-center gap-1.5 mt-1 pt-1 border-t border-[#2d2d2c] w-full">
+                            <span class="text-[9px] font-extrabold text-yellow-500 tracking-wider">"POCKET:"</span>
                             for (piece_name, url, count) in pocket_items {
                                 <div
                                     data-pocket-piece=(piece_name)
                                     data-pocket-color=(role_to_join)
-                                    class="pocket-piece relative flex items-center justify-center bg-[#2d2d2a] hover:bg-[#3d3d3a] border border-[#4d4d4a] rounded p-1 w-9 h-9 cursor-pointer select-none transition-all shadow"
+                                    class="pocket-piece relative flex items-center justify-center bg-[#2d2d2a] hover:bg-[#3d3d3a] border border-[#4d4d4a] rounded p-0.5 w-7 h-7 cursor-pointer select-none transition-all shadow"
                                 >
                                     <img
                                         src=(url)
                                         draggable="true"
-                                        class="w-7 h-7 object-contain cursor-grab active:cursor-grabbing select-none"
+                                        class="w-6 h-6 object-contain cursor-grab active:cursor-grabbing select-none"
                                     />
                                     if count > 1 {
-                                        <span class="absolute -bottom-1 -right-1 bg-yellow-600 text-white font-extrabold text-[9px] px-1 rounded-full pointer-events-none leading-none">
+                                        <span class="absolute -bottom-1 -right-1 bg-yellow-600 text-white font-extrabold text-[8px] px-1 rounded-full pointer-events-none leading-none">
                                             (format!("x{}", count))
                                         </span>
                                     }
@@ -129,7 +113,7 @@ pub async fn render_player_line(
             if player_id_opt.is_none() {
                 <form action=(format!("/game/{}/join", game_id)) method="POST" class="m-0">
                     <input type="hidden" name="role" value=(role_to_join) />
-                    <button type="submit" class="bg-[#769656] hover:bg-[#85a665] text-white font-bold py-1.5 px-4 rounded text-sm transition">
+                    <button type="submit" class="bg-[#769656] hover:bg-[#85a665] text-white font-bold py-1 px-3 rounded text-xs transition">
                         "Join"
                     </button>
                 </form>
@@ -256,58 +240,13 @@ pub async fn render_inner_game_view(cx: &Cx, game: &ChessGame, player_id: &str, 
     };
 
     view! { cx =>
-        <div class="flex flex-col md:flex-row gap-8 items-start w-full min-h-0">
-            <div class="w-full md:w-auto flex-1 flex flex-col min-h-0 max-w-[640px] mx-auto md:mx-0">
-                <div class=(format!("border rounded-lg p-3 mb-2 font-bold flex items-center justify-between text-sm {}", status_bg))>
-                    <div class="flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-full bg-current animate-pulse"></span>
-                        <span>(status_text)</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        if game.variant == "mad_scientist" {
-                            <div class="relative group flex items-center gap-1 cursor-pointer">
-                                <div class="text-[10px] uppercase font-extrabold tracking-wider bg-yellow-600 px-2 py-0.5 rounded text-white shadow shadow-yellow-500/20 animate-pulse">
-                                    "Mad Scientist Mode"
-                                </div>
-                                <svg class="w-4 h-4 text-yellow-500 hover:text-yellow-400 transition" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <div class="absolute bottom-full right-0 mb-2 w-72 p-3 bg-[#1e1e1c] text-xs text-gray-200 border border-yellow-500/30 rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-50 leading-relaxed normal-case font-normal">
-                                    <span class="font-bold text-yellow-500 block mb-1">"🧪 Mad Scientist Chess Rules:"</span>
-                                    "1. Captured pieces go into the OWNER's pocket (keep their color)."
-                                    <br/>
-                                    "2. On your turn, you can drop a piece from your pocket onto any empty square (pawns cannot drop on 1st/8th ranks)."
-                                    <br/>
-                                    "3. Drop moves are drag-and-drop or select-and-click!"
-                                </div>
-                            </div>
-                        } else {
-                            <div class="relative group flex items-center gap-1 cursor-pointer">
-                                <div class="text-xs uppercase tracking-wider bg-[#262522] px-2 py-0.5 rounded text-gray-400">
-                                    "Standard Chess"
-                                </div>
-                                <svg class="w-4 h-4 text-gray-400 hover:text-gray-200 transition" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <div class="absolute bottom-full right-0 mb-2 w-72 p-3 bg-[#1e1e1c] text-xs text-gray-200 border border-gray-600/30 rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-50 leading-relaxed normal-case font-normal">
-                                    <span class="font-bold text-white block mb-1">"♟ Standard Chess Rules:"</span>
-                                    "Standard chess. Protect your king, capture opponent pieces, block checks, and checkmate the opponent king to win!"
-                                </div>
-                            </div>
-                        }
-                        if game.status == "active" {
-                            <div class="text-xs uppercase tracking-wider bg-[#262522] px-2 py-0.5 rounded text-gray-400">
-                                "Live"
-                            </div>
-                        }
-                    </div>
-                </div>
-
+        <div class="flex flex-col lg:flex-row gap-2 lg:gap-8 items-center lg:items-start w-full h-full min-h-0 justify-between max-w-7xl mx-auto overflow-hidden">
+            <div class="w-full lg:flex-1 flex flex-col justify-between h-full min-h-0 max-w-[760px] mx-auto lg:mx-0 py-0.5 sm:py-1 overflow-hidden">
                 (top_panel)
 
                 <div
                     id="chess-board"
-                    class="grid grid-cols-8 w-full aspect-square border-4 border-[#31312f] rounded-lg overflow-hidden relative shadow-2xl select-none bg-[#769656]"
+                    class="grid grid-cols-8 w-full max-w-[min(100%,calc(100dvh-160px))] lg:max-w-[min(100%,calc(100vh-140px),720px)] aspect-square border-4 sm:border-8 border-[#31312f] rounded-xl overflow-hidden relative shadow-[0_15px_50px_rgba(0,0,0,0.85)] select-none bg-[#769656] mx-auto transition-all shrink-0"
                     data-game-id=(game.id.clone())
                     data-my-role=(player_role)
                     data-my-turn=(if is_my_turn { "true" } else { "false" })
@@ -346,7 +285,7 @@ pub async fn render_inner_game_view(cx: &Cx, game: &ChessGame, player_id: &str, 
                                 data-square=(sq_name.clone())
                                 data-piece-color=(color_opt.map(|c| if c == Color::White { "white" } else { "black" }).unwrap_or("none"))
                                 data-piece-type=(piece_opt.map(|p| match p { Piece::Pawn => "pawn", _ => "other" }).unwrap_or("none"))
-                                class=(format!("chess-square relative aspect-square flex items-center justify-center {}{} select-none cursor-pointer", sq_color_class, last_move_class))
+                                class=(format!("chess-square relative aspect-square flex items-center justify-center {}{} select-none cursor-pointer p-0.5 sm:p-1", sq_color_class, last_move_class))
                             >
                                 if let Some(piece) = piece_opt {
                                     if let Some(color) = color_opt {
@@ -354,18 +293,18 @@ pub async fn render_inner_game_view(cx: &Cx, game: &ChessGame, player_id: &str, 
                                         <img
                                             src=(img_url)
                                             draggable="true"
-                                            class="w-[92%] h-[92%] object-contain select-none cursor-grab active:cursor-grabbing z-10 hover:scale-105 transition-transform"
+                                            class="w-[96%] h-[96%] object-contain select-none cursor-grab active:cursor-grabbing z-10 hover:scale-105 transition-transform filter drop-shadow-md"
                                         />
                                     }
                                 }
 
                                 if f_idx == 0 {
-                                    <span class=(format!("absolute top-0.5 left-1 text-[9px] md:text-xs font-bold leading-none select-none pointer-events-none {}", coord_color_class))>
+                                    <span class=(format!("absolute top-0.5 left-1 text-[9px] sm:text-xs font-black leading-none select-none pointer-events-none {}", coord_color_class))>
                                         (format!("{}", rank.to_index() + 1))
                                     </span>
                                 }
                                 if r_idx == 7 {
-                                    <span class=(format!("absolute bottom-0.5 right-1 text-[9px] md:text-xs font-bold leading-none select-none pointer-events-none {}", coord_color_class))>
+                                    <span class=(format!("absolute bottom-0.5 right-1 text-[9px] sm:text-xs font-black leading-none select-none pointer-events-none {}", coord_color_class))>
                                         (file_char.to_string())
                                     </span>
                                 }
@@ -377,35 +316,65 @@ pub async fn render_inner_game_view(cx: &Cx, game: &ChessGame, player_id: &str, 
                 (bottom_panel)
             </div>
 
-            <div class="w-full md:w-80 bg-[#1e1e1c] border border-[#31312f] rounded-xl p-6 flex flex-col h-[550px] shadow-lg">
-                <h2 class="text-xl font-bold text-white mb-4 border-b border-[#31312f] pb-3">"Game Details"</h2>
+            <div class="hidden lg:flex w-80 xl:w-96 bg-[#1b1a18] border border-[#31312f] rounded-2xl p-5 flex-col h-full shadow-2xl shrink-0 gap-4 overflow-hidden">
+                <div class=(format!("border rounded-xl p-4 font-bold flex flex-col gap-2 shadow-inner transition-all {}", status_bg))>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs uppercase tracking-wider font-extrabold text-gray-400">"Game Status"</span>
+                        if game.status == "active" {
+                            <span class="flex items-center gap-1.5 text-xs uppercase tracking-wider bg-[#262522] px-2.5 py-0.5 rounded-full text-[#81b64c] font-bold border border-[#769656]/40">
+                                <span class="w-2 h-2 rounded-full bg-[#81b64c] animate-pulse"></span>
+                                "Live"
+                            </span>
+                        }
+                    </div>
+                    <div class="text-lg font-black tracking-tight leading-snug">
+                        (status_text.clone())
+                    </div>
+                    <div class="flex items-center justify-between border-t border-white/10 pt-2 text-xs">
+                        <span class="text-gray-400">"Mode:"</span>
+                        if game.variant == "mad_scientist" {
+                            <span class="font-bold text-yellow-400 bg-yellow-950/60 px-2 py-0.5 rounded border border-yellow-600/40">
+                                "🧪 Mad Scientist"
+                            </span>
+                        } else {
+                            <span class="font-bold text-gray-300 bg-[#262522] px-2 py-0.5 rounded border border-gray-600/30">
+                                "♟ Standard Chess"
+                            </span>
+                        }
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between border-b border-[#31312f] pb-2">
+                    <h2 class="text-base font-extrabold text-white uppercase tracking-wider">"Move History"</h2>
+                    <span class="text-xs text-gray-500 font-mono">(format!("{} moves", game.moves.len()))</span>
+                </div>
 
                 if game.status == "waiting" {
                     <button
                         onclick="navigator.clipboard.writeText(window.location.href); alert('Game link copied to clipboard!');"
-                        class="w-full bg-[#769656] hover:bg-[#85a665] text-white font-bold py-2.5 px-4 rounded-lg text-sm transition flex items-center justify-center gap-2 mb-4 cursor-pointer"
+                        class="w-full bg-[#769656] hover:bg-[#85a665] text-white font-extrabold py-3 px-4 rounded-xl text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-[#769656]/20 shrink-0"
                     >
                         <span>"🔗"</span>
                         "Copy Invite Link"
                     </button>
                 }
 
-                <div class="flex-1 overflow-y-auto mb-4 font-mono text-sm space-y-1 pr-2">
+                <div class="flex-1 overflow-y-auto min-h-0 font-mono text-sm space-y-1 pr-1 border border-[#2a2926] rounded-xl p-3 bg-[#141311]">
                     if game.moves.is_empty() {
-                        <div class="text-gray-500 text-center py-12 italic">
-                            "No moves made yet."
+                        <div class="text-gray-500 text-center py-12 italic text-xs">
+                            "No moves played yet. Ready to start!"
                         </div>
                     } else {
                         for i in (0..game.moves.len()).step_by(2) {
-                            <div class="flex py-1.5 px-2 rounded hover:bg-[#262522] border-b border-[#31312f]/30">
-                                <span class="w-10 text-gray-500 font-semibold">
+                            <div class="flex py-1.5 px-2 rounded hover:bg-[#262522] border-b border-[#31312f]/30 items-center">
+                                <span class="w-10 text-gray-500 font-bold text-xs">
                                     (format!("{}.", i / 2 + 1))
                                 </span>
                                 <span class="flex-1 text-[#81b64c] font-bold">
                                     (game.moves[i].clone())
                                 </span>
                                 if i + 1 < game.moves.len() {
-                                    <span class="flex-1 text-gray-300">
+                                    <span class="flex-1 text-gray-300 font-medium">
                                         (game.moves[i + 1].clone())
                                     </span>
                                 } else {
@@ -422,18 +391,100 @@ pub async fn render_inner_game_view(cx: &Cx, game: &ChessGame, player_id: &str, 
                     <input type="hidden" name="promo" id="move-promo" />
                 </form>
 
-                <div class="border-t border-[#31312f] pt-4 mt-auto">
-                    <div class="text-xs text-gray-500 mb-2">"GAME ID:"</div>
-                    <div class="bg-[#262522] px-3 py-2 rounded text-[#769656] font-mono text-xs select-all truncate border border-[#31312f] flex justify-between items-center mb-3">
-                        (game.id.clone())
+                <div class="border-t border-[#31312f] pt-3 mt-auto space-y-3 shrink-0">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">"GAME ID"</span>
+                        <span class="text-xs font-mono text-[#769656] select-all bg-[#262522] px-2 py-0.5 rounded border border-[#31312f]">
+                            (game.id.clone())
+                        </span>
                     </div>
-                    <div class="flex gap-2">
-                        <a
-                            href="/"
-                            class="w-full text-center bg-[#363532] hover:bg-[#454440] text-gray-300 font-bold py-2.5 px-4 rounded-lg text-sm transition"
-                        >
-                            "Exit to Lobby"
-                        </a>
+
+                    <a
+                        href="/"
+                        class="w-full text-center bg-[#262522] hover:bg-[#363532] text-gray-200 hover:text-white font-extrabold py-3 px-4 rounded-xl text-sm transition flex items-center justify-center gap-2 border border-[#31312f] shadow"
+                    >
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        "Back to Lobby"
+                    </a>
+                </div>
+            </div>
+
+            <div id="mobile-details-drawer" class="fixed inset-y-0 right-0 z-50 w-80 bg-[#1b1a18] border-l border-[#31312f] p-5 flex flex-col justify-between transform translate-x-full transition-transform duration-300 ease-in-out lg:hidden shadow-2xl overflow-y-auto">
+                <div class="flex items-center justify-between pb-4 border-b border-[#31312f]">
+                    <h2 class="text-lg font-black text-white">"Game Details"</h2>
+                    <button id="mobile-details-close" type="button" class="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-[#262522]">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="my-4 font-bold flex flex-col gap-2">
+                    <div class=(format!("border rounded-xl p-4 font-bold flex flex-col gap-2 shadow-inner transition-all {}", status_bg))>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs uppercase tracking-wider font-extrabold text-gray-400">"Status"</span>
+                            if game.status == "active" {
+                                <span class="flex items-center gap-1.5 text-xs uppercase tracking-wider bg-[#262522] px-2.5 py-0.5 rounded-full text-[#81b64c] font-bold border border-[#769656]/40">
+                                    <span class="w-2 h-2 rounded-full bg-[#81b64c] animate-pulse"></span>
+                                    "Live"
+                                </span>
+                            }
+                        </div>
+                        <div class="text-base font-black tracking-tight leading-snug">
+                            (status_text)
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between border-b border-[#31312f] pb-2 mb-2">
+                    <h3 class="text-xs font-extrabold text-gray-400 uppercase tracking-wider">"Move History"</h3>
+                    <span class="text-xs text-gray-500 font-mono">(format!("{} moves", game.moves.len()))</span>
+                </div>
+
+                if game.status == "waiting" {
+                    <button
+                        onclick="navigator.clipboard.writeText(window.location.href); alert('Game link copied to clipboard!');"
+                        class="w-full bg-[#769656] hover:bg-[#85a665] text-white font-extrabold py-2.5 px-4 rounded-xl text-sm transition flex items-center justify-center gap-2 mb-3 cursor-pointer shadow-lg"
+                    >
+                        <span>"🔗"</span>
+                        "Copy Invite Link"
+                    </button>
+                }
+
+                <div class="flex-1 overflow-y-auto min-h-[150px] font-mono text-sm space-y-1 pr-1 border border-[#2a2926] rounded-xl p-3 bg-[#141311] mb-4">
+                    if game.moves.is_empty() {
+                        <div class="text-gray-500 text-center py-8 italic text-xs">
+                            "No moves played yet."
+                        </div>
+                    } else {
+                        for i in (0..game.moves.len()).step_by(2) {
+                            <div class="flex py-1.5 px-2 rounded hover:bg-[#262522] border-b border-[#31312f]/30 items-center">
+                                <span class="w-10 text-gray-500 font-bold text-xs">
+                                    (format!("{}.", i / 2 + 1))
+                                </span>
+                                <span class="flex-1 text-[#81b64c] font-bold">
+                                    (game.moves[i].clone())
+                                </span>
+                                if i + 1 < game.moves.len() {
+                                    <span class="flex-1 text-gray-300 font-medium">
+                                        (game.moves[i + 1].clone())
+                                    </span>
+                                } else {
+                                    <span class="flex-1"></span>
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+
+                <div class="border-t border-[#31312f] pt-3 mt-auto space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">"GAME ID"</span>
+                        <span class="text-xs font-mono text-[#769656] select-all bg-[#262522] px-2 py-0.5 rounded border border-[#31312f]">
+                            (game.id.clone())
+                        </span>
                     </div>
                 </div>
             </div>

@@ -1,7 +1,56 @@
 (function() {
     let selectedSquare = null;
     let selectedSquareEl = null;
-    console.log('guess-chess click handler initialized');
+    // Setup Mobile Hamburger Menu & Details Drawer Toggles
+    function setupMobileMenu() {
+        const menuBtn = document.getElementById('mobile-menu-btn');
+        const menuDrawer = document.getElementById('mobile-menu-drawer');
+        const overlay = document.getElementById('mobile-menu-overlay');
+        const menuCloseBtn = document.getElementById('mobile-menu-close');
+
+        const detailsBtn = document.getElementById('mobile-details-btn');
+        const detailsDrawer = document.getElementById('mobile-details-drawer');
+        const detailsCloseBtn = document.getElementById('mobile-details-close');
+
+        function openMenu() {
+            closeDetails();
+            if (menuDrawer) menuDrawer.classList.remove('-translate-x-full');
+            if (overlay) overlay.classList.remove('hidden');
+        }
+
+        function closeMenu() {
+            if (menuDrawer) menuDrawer.classList.add('-translate-x-full');
+            if (!detailsDrawer || detailsDrawer.classList.contains('translate-x-full')) {
+                if (overlay) overlay.classList.add('hidden');
+            }
+        }
+
+        function openDetails() {
+            closeMenu();
+            if (detailsDrawer) detailsDrawer.classList.remove('translate-x-full');
+            if (overlay) overlay.classList.remove('hidden');
+        }
+
+        function closeDetails() {
+            if (detailsDrawer) detailsDrawer.classList.add('translate-x-full');
+            if (!menuDrawer || menuDrawer.classList.contains('-translate-x-full')) {
+                if (overlay) overlay.classList.add('hidden');
+            }
+        }
+
+        if (menuBtn) menuBtn.onclick = openMenu;
+        if (menuCloseBtn) menuCloseBtn.onclick = closeMenu;
+
+        if (detailsBtn) detailsBtn.onclick = openDetails;
+        if (detailsCloseBtn) detailsCloseBtn.onclick = closeDetails;
+
+        if (overlay) overlay.onclick = function() {
+            closeMenu();
+            closeDetails();
+        };
+    }
+    setupMobileMenu();
+    document.addEventListener('htmx:afterSwap', setupMobileMenu);
 
     // Establish WebSocket connection
     let ws;

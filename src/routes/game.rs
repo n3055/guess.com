@@ -87,14 +87,8 @@ async fn game_page(cx: &Cx) -> Result {
     let inner = render_inner_game_view(cx, &game, &player_id, role_query.as_deref()).await?;
 
     view! {
-        <div class="flex-1 flex flex-col p-4 md:p-8 max-w-5xl mx-auto w-full">
-            <div class="mb-4">
-                <a href="/" class="text-gray-400 hover:text-white flex items-center gap-2 text-sm font-semibold">
-                    <span>"← Back to Lobby"</span>
-                </a>
-            </div>
-
-            <div id="game-container" class="w-full flex-1 flex flex-col min-h-0">
+        <div class="flex-1 flex flex-col p-1 sm:p-3 md:p-4 max-w-7xl mx-auto w-full h-full min-h-0 overflow-hidden">
+            <div id="game-container" class="w-full flex-1 flex flex-col min-h-0 h-full overflow-hidden">
                 (inner)
             </div>
 
