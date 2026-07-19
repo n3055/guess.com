@@ -1,0 +1,305 @@
+(function() {
+    let selectedSquare = null;
+    let selectedSquareEl = null;
+    console.log('guess-chess click handler initialized');
+
+    // Establish WebSocket connection
+    let ws;
+    function connectWS() {
+        const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsHost = window.location.hostname + ':3001';
+        const boardEl = document.getElementById('chess-board');
+        if (!boardEl) return;
+        const gameId = boardEl.getAttribute('data-game-id');
+
+        console.log('Connecting to WebSocket at:', wsProto + '//' + wsHost + '/ws/' + gameId);
+        ws = new WebSocket(wsProto + '//' + wsHost + '/ws/' + gameId);
+
+        ws.onmessage = function(event) {
+            if (event.data === 'refresh') {
+                console.log('Received refresh signal from WS, reloading board');
+                const urlParams = new URLSearchParams(window.location.search);
+                const roleParam = urlParams.get('role') || '';
+                htmx.ajax('GET', '/game/' + gameId + '/board?role=' + roleParam, {
+                    target: document.getElementById('game-container'),
+                    swap: 'innerHTML'
+                });
+            }
+        };
+
+        ws.onclose = function() {
+            console.log('WS connection closed, retrying in 3 seconds...');
+            setTimeout(connectWS, 3000);
+        };
+
+        ws.onerror = function(err) {
+            console.error('WS error:', err);
+        };
+    }
+    connectWS();
+
+    // Add drag and drop listeners
+    document.addEventListener('dragstart', function(e) {
+        const boardEl = document.getElementById('chess-board');
+        if (!boardEl) return;
+        const myRole = boardEl.getAttribute('data-my-role');
+        const myTurn = boardEl.getAttribute('data-my-turn') === 'true';
+        if (myRole === 'spectator' || !myTurn) {
+            e.preventDefault();
+            return;
+        }
+
+        // Check if dragging board piece
+        const squareEl = e.target.closest('[data-square]');
+        if (squareEl) {
+            const pieceColor = squareEl.getAttribute('data-piece-color');
+            if (pieceColor !== myRole) {
+                e.preventDefault();
+                return;
+            }
+            const square = squareEl.getAttribute('data-square');
+            e.dataTransfer.setData('text/plain', square);
+            squareEl.classList.add('opacity-50');
+            return;
+        }
+
+        // Check if dragging pocket piece
+        const pocketEl = e.target.closest('[data-pocket-piece]');
+        if (pocketEl) {
+            const color = pocketEl.getAttribute('data-pocket-color');
+            if (color !== myRole) {
+                e.preventDefault();
+                return;
+            }
+            const piece = pocketEl.getAttribute('data-pocket-piece');
+            if (!piece) {
+                e.preventDefault();
+                return;
+            }
+            e.dataTransfer.setData('text/plain', 'drop:' + piece);
+            pocketEl.classList.add('opacity-50');
+            return;
+        }
+
+        e.preventDefault();
+    });
+
+    document.addEventListener('dragend', function(e) {
+        // Clear any opacity classes
+        const squareEl = e.target.closest('[data-square]');
+        if (squareEl) {
+            squareEl.classList.remove('opacity-50');
+        }
+        const pocketEl = e.target.closest('[data-pocket-piece]');
+        if (pocketEl) {
+            pocketEl.classList.remove('opacity-50');
+        }
+        // Clear drag hover styles from all squares
+        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    });
+
+    document.addEventListener('dragover', function(e) {
+        const squareEl = e.target.closest('[data-square]');
+        if (squareEl) {
+            e.preventDefault(); // Required to allow drop
+        }
+    });
+
+    document.addEventListener('dragenter', function(e) {
+        const squareEl = e.target.closest('[data-square]');
+        if (squareEl) {
+            squareEl.classList.add('drag-over');
+        }
+    });
+
+    document.addEventListener('dragleave', function(e) {
+        const squareEl = e.target.closest('[data-square]');
+        if (squareEl) {
+            squareEl.classList.remove('drag-over');
+        }
+    });
+
+    document.addEventListener('drop', function(e) {
+        const squareEl = e.target.closest('[data-square]');
+        if (!squareEl) return;
+        e.preventDefault();
+
+        const boardEl = document.getElementById('chess-board');
+        if (!boardEl) return;
+
+        const myRole = boardEl.getAttribute('data-my-role');
+        const gameId = boardEl.getAttribute('data-game-id');
+        const toSq = squareEl.getAttribute('data-square');
+        const fromSq = e.dataTransfer.getData('text/plain');
+
+        if (!fromSq || fromSq === toSq) return;
+
+        let promo = '';
+        if (!fromSq.startsWith('drop:')) {
+            // Check pawn promotion
+            let fromSquareEl = null;
+            const sqs = document.querySelectorAll("[data-square]");
+            for (let i = 0; i < sqs.length; i++) {
+                if (sqs[i].getAttribute("data-square") === fromSq) {
+                    fromSquareEl = sqs[i];
+                    break;
+                }
+            }
+            const isPawn = fromSquareEl && fromSquareEl.getAttribute('data-piece-type') === 'pawn';
+            if (isPawn) {
+                const toRank = toSq.charAt(1);
+                if ((myRole === 'white' && toRank === '8') || (myRole === 'black' && toRank === '1')) {
+                    const choice = prompt('Promote pawn to (Q = Queen, R = Rook, B = Bishop, N = Knight):', 'Q');
+                    if (choice) {
+                        promo = choice.trim().toLowerCase();
+                    } else {
+                        console.log('Promotion cancelled');
+                        return;
+                    }
+                }
+            }
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const roleParam = urlParams.get('role') || '';
+
+        htmx.ajax('POST', '/game/' + gameId + '/move?role=' + roleParam, {
+            target: document.getElementById('game-container'),
+            swap: 'innerHTML',
+            values: {
+                from_sq: fromSq,
+                to_sq: toSq,
+                promo: promo
+            }
+        });
+    });
+
+    document.addEventListener('click', function(e) {
+        const boardEl = document.getElementById('chess-board');
+        if (!boardEl) return;
+
+        const myRole = boardEl.getAttribute('data-my-role');
+        const myTurn = boardEl.getAttribute('data-my-turn') === 'true';
+
+        if (myRole === 'spectator' || !myTurn) {
+            return;
+        }
+
+        // 1. Check if clicked a pocket piece
+        const pocketEl = e.target.closest('[data-pocket-piece]');
+        if (pocketEl) {
+            const piece = pocketEl.getAttribute('data-pocket-piece');
+            const color = pocketEl.getAttribute('data-pocket-color');
+
+            if (color !== myRole) {
+                console.log('Cannot select opponent pocket piece');
+                return;
+            }
+
+            // Clear any previous board square selection highlights
+            const prevSelectedEl = document.querySelector('.selected-sq');
+            if (prevSelectedEl) {
+                prevSelectedEl.classList.remove('selected-sq');
+            }
+            // Clear any previous pocket piece selection highlights
+            const prevPocketEl = document.querySelector('.selected-pocket-piece');
+            if (prevPocketEl) {
+                prevPocketEl.classList.remove('selected-pocket-piece');
+            }
+
+            selectedSquare = 'drop:' + piece;
+            selectedSquareEl = pocketEl;
+            pocketEl.classList.add('selected-pocket-piece');
+            console.log('Pocket piece selected:', selectedSquare);
+            return;
+        }
+
+        // 2. Check if clicked a board square
+        const squareEl = e.target.closest('[data-square]');
+        if (!squareEl) return;
+
+        const square = squareEl.getAttribute('data-square');
+        const pieceColor = squareEl.getAttribute('data-piece-color');
+
+        if (selectedSquare === null) {
+            if (pieceColor === myRole) {
+                selectedSquare = square;
+                selectedSquareEl = squareEl;
+                squareEl.classList.add('selected-sq');
+                console.log('Piece selected:', selectedSquare);
+            } else {
+                console.log('Cannot select opponent or empty square');
+            }
+        } else {
+            // If we click the same square or same pocket piece
+            if (selectedSquare === square || selectedSquare === ('drop:' + squareEl.getAttribute('data-piece-type'))) {
+                // Reset selection
+                if (selectedSquare.startsWith('drop:')) {
+                    selectedSquareEl.classList.remove('selected-pocket-piece');
+                } else {
+                    selectedSquareEl.classList.remove('selected-sq');
+                }
+                selectedSquare = null;
+                selectedSquareEl = null;
+                console.log('Selection cleared');
+            } else if (pieceColor === myRole) {
+                // Switch selection to another of our own board pieces
+                if (selectedSquare.startsWith('drop:')) {
+                    selectedSquareEl.classList.remove('selected-pocket-piece');
+                } else {
+                    selectedSquareEl.classList.remove('selected-sq');
+                }
+                selectedSquare = square;
+                selectedSquareEl = squareEl;
+                squareEl.classList.add('selected-sq');
+                console.log('Selection changed to board piece:', selectedSquare);
+            } else {
+                // Make a move or drop!
+                const fromSq = selectedSquare;
+                const toSq = square;
+                const fromSquareEl = selectedSquareEl;
+
+                // Clear highlights
+                if (selectedSquare.startsWith('drop:')) {
+                    selectedSquareEl.classList.remove('selected-pocket-piece');
+                } else {
+                    selectedSquareEl.classList.remove('selected-sq');
+                }
+                selectedSquare = null;
+                selectedSquareEl = null;
+
+                let promo = '';
+                if (!fromSq.startsWith('drop:')) {
+                    const isPawn = fromSquareEl && fromSquareEl.getAttribute('data-piece-type') === 'pawn';
+                    if (isPawn) {
+                        const toRank = toSq.charAt(1);
+                        if ((myRole === 'white' && toRank === '8') || (myRole === 'black' && toRank === '1')) {
+                            const choice = prompt('Promote pawn to (Q = Queen, R = Rook, B = Bishop, N = Knight):', 'Q');
+                            if (choice) {
+                                promo = choice.trim().toLowerCase();
+                            } else {
+                                console.log('Promotion cancelled');
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                const gameId = boardEl.getAttribute('data-game-id');
+                const urlParams = new URLSearchParams(window.location.search);
+                const roleParam = urlParams.get('role') || '';
+                console.log('Submitting move/drop via HTMX AJAX:', fromSq, '->', toSq, 'promo:', promo);
+
+                htmx.ajax('POST', '/game/' + gameId + '/move?role=' + roleParam, {
+                    target: document.getElementById('game-container'),
+                    swap: 'innerHTML',
+                    values: {
+                        from_sq: fromSq,
+                        to_sq: toSq,
+                        promo: promo
+                    }
+                });
+            }
+        }
+    });
+})();
