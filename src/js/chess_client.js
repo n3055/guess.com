@@ -7,7 +7,12 @@
     let ws;
     function connectWS() {
         const wsProto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsHost = window.location.hostname + ':3001';
+        let wsHost;
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            wsHost = window.location.hostname + ':3001';
+        } else {
+            wsHost = window.location.host;
+        }
         const boardEl = document.getElementById('chess-board');
         if (!boardEl) return;
         const gameId = boardEl.getAttribute('data-game-id');
